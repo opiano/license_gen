@@ -42,6 +42,10 @@ const handleFileUpload = (event) => {
   event.target.value = null
 }
 
+const clearPrivateKey = () => {
+  privateKeyInput.value = ''
+}
+
 const validateInputs = () => {
   if (!privateKeyInput.value.includes('-----BEGIN RSA PRIVATE KEY-----')) {
     errorMessage.value = "Invalid or empty private key."
@@ -144,9 +148,12 @@ const downloadLicense = () => {
       <div class="split-layout">
         <div class="left-panel">
           <div class="panel-title">
-            <h3>Private Key Configuration</h3>
-            <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none" accept=".pem,.key,.txt,.pm" />
-            <Button label="Upload Key File" icon="pi pi-upload" size="small" variant="outlined" @click="triggerFileSelect" />
+            <h3>PriKey</h3>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none" accept=".pem,.key,.txt,.pm" />
+              <Button label="Clear" icon="pi pi-trash" size="small" severity="danger" variant="outlined" @click="clearPrivateKey" />
+              <Button label="Upload Key" icon="pi pi-upload" size="small" variant="outlined" @click="triggerFileSelect" />
+            </div>
           </div>
           <Textarea v-model="privateKeyInput" class="key-textarea" placeholder="Paste private key here..." spellcheck="false" />
         </div>
