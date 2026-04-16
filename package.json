@@ -1,0 +1,23 @@
+{
+  "name": "gen-license",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@primeuix/themes": "^2.0.3",
+    "file-saver": "^2.0.5",
+    "node-forge": "^1.4.0",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.5.5",
+    "vue": "^3.5.32"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.5",
+    "vite": "^8.0.4"
+  }
+}
