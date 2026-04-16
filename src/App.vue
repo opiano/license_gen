@@ -148,7 +148,7 @@ const downloadLicense = () => {
       <div class="split-layout">
         <div class="left-panel">
           <div class="panel-title">
-            <h3>PriKey</h3>
+            <h3>Private Key</h3>
             <div style="display: flex; gap: 0.5rem;">
               <input type="file" ref="fileInput" @change="handleFileUpload" style="display: none" accept=".pem,.key,.txt,.pm" />
               <Button label="Clear" icon="pi pi-trash" size="small" severity="danger" variant="outlined" @click="clearPrivateKey" />
