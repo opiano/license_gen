@@ -8,6 +8,20 @@ import forge from 'node-forge'
 import { saveAs } from 'file-saver'
 import defaultPrivateKeyPem from './assets/private_key.pem?raw'
 
+const isAuthenticated = ref(false)
+const loginId = ref('')
+const loginPw = ref('')
+const loginError = ref(false)
+
+const handleLogin = () => {
+  if (loginId.value === 'admin' && loginPw.value === 'gen1234') {
+    isAuthenticated.value = true
+    loginError.value = false
+  } else {
+    loginError.value = true
+  }
+}
+
 const privateKeyInput = ref(defaultPrivateKeyPem.trim())
 const fileInput = ref(null)
 
@@ -47,7 +61,7 @@ const clearPrivateKey = () => {
 }
 
 const validateInputs = () => {
-  if (!privateKeyInput.value.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+  if (!privateKeyInput.value.includes('-----BEGIN RSA PRIVATE KEY-----') && !privateKeyInput.value.includes('-----BEGIN PRIVATE KEY-----')) {
     errorMessage.value = "Invalid or empty private key."
     return false
   }
@@ -55,8 +69,8 @@ const validateInputs = () => {
     errorMessage.value = "Serial must be exactly 6 digits."
     return false
   }
-  if (mac.value.length !== 12 || !/^[0-9a-f]{12}$/.test(mac.value)) {
-    errorMessage.value = "MAC must be exactly 12 lowercase hex characters."
+  if (mac.value.length !== 17 || !/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(mac.value)) {
+    errorMessage.value = "MAC must be in formatting like 00:00:AA:3E:AB:ED"
     return false
   }
   if (expire.value.length !== 8 || !/^\d{8}$/.test(expire.value)) {
@@ -87,7 +101,9 @@ const generateLicense = () => {
   if (!validateInputs()) return
 
   try {
-    const combined = serial.value + mac.value
+    // 대소문자 혼용해서 입력하더라도 해시는 무조건 소문자로 동일하게 생성되도록 강제
+    const cleanMac = mac.value.replace(/:/g, '').toLowerCase()
+    const combined = serial.value + cleanMac
     
     // Hash combined for HW_ID
     const hwMd = forge.md.sha256.create()
@@ -138,7 +154,29 @@ const downloadLicense = () => {
 
 <template>
   <div class="app-container">
-    <div class="main-card">
+    <div v-if="!isAuthenticated" class="login-card">
+      <div class="card-header">
+        <i class="pi pi-lock text-4xl mb-3" style="color: var(--p-primary-color)"></i>
+        <h2>Login</h2>
+        <p class="subtitle">Enter your credentials to access the license tools</p>
+      </div>
+      <div class="form-container">
+        <div class="field">
+          <label for="username">ID</label>
+          <InputText id="username" v-model="loginId" @keydown.enter="handleLogin" placeholder="Admin ID" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <InputText id="password" type="password" v-model="loginPw" @keydown.enter="handleLogin" placeholder="Password" />
+        </div>
+        <div v-if="loginError" class="error-msg mt-3">
+          <i class="pi pi-exclamation-triangle"></i> Invalid ID or Password.
+        </div>
+        <Button label="Login" icon="pi pi-sign-in" class="w-full mt-4" @click="handleLogin" size="large" />
+      </div>
+    </div>
+
+    <div v-else class="main-card">
       <div class="card-header">
         <i class="pi pi-key text-4xl mb-3" style="color: var(--p-primary-color)"></i>
         <h2>License Gen</h2>
@@ -170,8 +208,8 @@ const downloadLicense = () => {
             </div>
             
             <div class="field">
-              <label for="mac">MAC Address (12 hex, lowercase)</label>
-              <InputText id="mac" v-model="mac" placeholder="e.g. 001a2b3c4d5e" maxlength="12" />
+              <label for="mac">MAC Address (e.g. 00:00:AA:3E:AB:ED)</label>
+              <InputText id="mac" v-model="mac" placeholder="e.g. 00:00:AA:3E:AB:ED" maxlength="17" />
             </div>
             
             <div class="field">
@@ -360,5 +398,20 @@ const downloadLicense = () => {
     border: 1px solid var(--p-surface-800);
     color: var(--p-primary-200);
   }
+  .login-card {
+    background-color: var(--p-surface-900);
+    border-color: var(--p-surface-800);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.login-card {
+  background-color: var(--p-surface-0);
+  border-radius: var(--p-border-radius);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 3rem;
+  width: 100%;
+  max-width: 450px;
+  border: 1px solid var(--p-surface-200);
 }
 </style>
