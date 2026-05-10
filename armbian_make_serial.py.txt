@@ -1,0 +1,36 @@
+import hashlib
+
+MACHINE_ID_PATH = "/etc/machine-id"
+
+
+# ---------- machine-id 읽기 ----------
+
+def read_machine_id() -> str:
+    with open(MACHINE_ID_PATH, "r") as f:
+        return f.read().strip()
+
+
+# ---------- 6자리 시리얼 생성 ----------
+
+def generate_serial_6digit(unique_str: str) -> str:
+    # SHA256 계산
+    digest = hashlib.sha256(unique_str.encode()).digest()
+
+    # 앞 4바이트 → 정수 변환
+    value = int.from_bytes(digest[:4], byteorder='big')
+
+    # 6자리 숫자 생성 (100000 ~ 999999)
+    serial = (value % 900000) + 100000
+
+    return f"{serial:06d}"
+
+
+# ---------- MAIN ----------
+
+machine_id = read_machine_id()
+
+print(f"Machine ID       : {machine_id}")
+
+serial = generate_serial_6digit(machine_id)
+
+print(f"Generated Serial : {serial}")
