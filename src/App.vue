@@ -4,6 +4,7 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Textarea from 'primevue/textarea'
+import RadioButton from 'primevue/radiobutton'
 import forge from 'node-forge'
 import { saveAs } from 'file-saver'
 import defaultPrivateKeyPem from './assets/private_key.pem?raw'
@@ -25,6 +26,8 @@ const handleLogin = () => {
 const privateKeyInput = ref(defaultPrivateKeyPem.trim())
 const fileInput = ref(null)
 
+const inputMode = ref('serial')
+const machineId = ref('')
 const serial = ref('')
 const mac = ref('')
 const expire = ref('')
@@ -65,9 +68,16 @@ const validateInputs = () => {
     errorMessage.value = "Invalid or empty private key."
     return false
   }
-  if (serial.value.length !== 6 || !/^\d{6}$/.test(serial.value)) {
-    errorMessage.value = "Serial must be exactly 6 digits."
-    return false
+  if (inputMode.value === 'serial') {
+    if (serial.value.length !== 6 || !/^\d{6}$/.test(serial.value)) {
+      errorMessage.value = "Serial must be exactly 6 digits."
+      return false
+    }
+  } else {
+    if (!machineId.value || machineId.value.trim().length === 0) {
+      errorMessage.value = "Machine ID is required."
+      return false
+    }
   }
   if (mac.value.length !== 17 || !/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(mac.value)) {
     errorMessage.value = "MAC must be in formatting like 00:00:AA:3E:AB:ED"
@@ -97,13 +107,33 @@ const formatLicense = (hw_id, expireVal, signature_b64) => {
   return `hw_id="${hw_id}"\nexpire="${expireVal}"\nsignature="${signature_b64}"\n`
 }
 
+const generateSerial6Digit = (uniqueStr) => {
+  const md = forge.md.sha256.create()
+  md.update(uniqueStr, 'utf8')
+  const digest = md.digest().getBytes()
+
+  let val = 0;
+  val += digest.charCodeAt(0) * 16777216; // 2^24
+  val += digest.charCodeAt(1) * 65536;    // 2^16
+  val += digest.charCodeAt(2) * 256;      // 2^8
+  val += digest.charCodeAt(3);
+
+  const serialNum = (val % 900000) + 100000;
+  return String(serialNum).padStart(6, '0');
+}
+
 const generateLicense = () => {
   if (!validateInputs()) return
 
   try {
+    let actualSerial = serial.value;
+    if (inputMode.value === 'machineId') {
+      actualSerial = generateSerial6Digit(machineId.value.trim());
+    }
+
     // 대소문자 혼용해서 입력하더라도 해시는 무조건 소문자로 동일하게 생성되도록 강제
     const cleanMac = mac.value.replace(/:/g, '').toLowerCase()
-    const combined = serial.value + cleanMac
+    const combined = actualSerial + cleanMac
     
     // Hash combined for HW_ID
     const hwMd = forge.md.sha256.create()
@@ -203,8 +233,27 @@ const downloadLicense = () => {
           
           <div class="form-container">
             <div class="field">
+              <label>Identifier Type</label>
+              <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <RadioButton v-model="inputMode" inputId="mode-serial" value="serial" />
+                  <label for="mode-serial" style="margin: 0; font-weight: normal; cursor: pointer;">Serial</label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <RadioButton v-model="inputMode" inputId="mode-machine" value="machineId" />
+                  <label for="mode-machine" style="margin: 0; font-weight: normal; cursor: pointer;">Machine ID</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="field" v-if="inputMode === 'serial'">
               <label for="serial">Serial (6 digits)</label>
               <InputText id="serial" v-model="serial" placeholder="e.g. 123456" maxlength="6" />
+            </div>
+
+            <div class="field" v-if="inputMode === 'machineId'">
+              <label for="machineId">Machine ID</label>
+              <InputText id="machineId" v-model="machineId" placeholder="Enter Machine ID" />
             </div>
             
             <div class="field">
